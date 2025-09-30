@@ -18,7 +18,7 @@ Talant Finder Suite - это кроссплатформенное приложе
 - Dart
 
 ## Лицензия
-MIT License
+[MIT](https://choosealicense.com/licenses/mit/)
 
 ## Установка
 
