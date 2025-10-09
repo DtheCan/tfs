@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tfs/Presentation_Layer/BodyHomePageWidget.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -17,12 +18,13 @@ class HomePage extends StatelessWidget {
         actions: [IconButton(
           icon: const Icon(Icons.help_sharp),
           onPressed: () {
-          print('Поиск');
+          print('Поиск пока что не работает');
             },
           ),
         ],
-        leading: IconButton(onPressed: (){print('lf');}, icon: Icon(Icons.menu)),
+        leading: IconButton(onPressed: (){print('меню пока что не работает');}, icon: Icon(Icons.menu)),
       ),
+      body: BodyHomePageWidget(),
     );
   }
 }
