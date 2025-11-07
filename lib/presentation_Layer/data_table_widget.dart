@@ -29,8 +29,13 @@ class _SimpleTableState extends State<SimpleTable> {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: DataTable(
+        border: TableBorder.all(
+          color: Colors.grey,
+          width: 1.0,
+          style: BorderStyle.solid,
+        ),
         columns: List.generate(
-          widget.controller.columnCount, // Используем данные из контроллера
+          widget.controller.columnCount,
           (index) {
             if (index == 0) {
               return DataColumn(label: Center(child: Text("Критерии")));
@@ -39,30 +44,69 @@ class _SimpleTableState extends State<SimpleTable> {
             } else {
               return DataColumn(
                 label: SizedBox(
-                  width: 120,
-                  child: TextFormWidget(hintText: "Имя ${index - 1}"),
+                  width: 200,
+                  height: 35,
+                  child: TextFormWidget(
+                    hintText: "Имя кандидата ${index - 1}",
+                    initialValue: widget.controller.tableData[0][index],
+                    onChanged: (value) {
+                      widget.controller.updateCell(0, index, value);
+                    },
+                  ),
                 ),
               );
             }
           },
         ),
         rows: List.generate(
-          widget.controller.rowCount, // Используем данные из контроллера
+          widget.controller.rowCount - 1, // -1 потому что первая строка уже в columns
           (rowIndex) => DataRow(
             cells: List.generate(
-              widget.controller.columnCount, // Используем данные из контроллера
+              widget.controller.columnCount,
               (cellIndex) {
+                // rowIndex + 1 потому что первая строка - это заголовки кандидатов
+                int dataRowIndex = rowIndex + 1;
+                String cellValue = '';
+                if (dataRowIndex < widget.controller.tableData.length &&
+                    cellIndex < widget.controller.tableData[dataRowIndex].length) {
+                  cellValue = widget.controller.tableData[dataRowIndex][cellIndex];
+                }
+
                 if (cellIndex == 0) {
                   return DataCell(
-                    SizedBox(child: TextFormWidget(hintText: "Критерий")),
+                    SizedBox(
+                      child: TextFormWidget(
+                        hintText: "Критерий ${rowIndex + 1}",
+                        initialValue: cellValue,
+                        onChanged: (value) {
+                          widget.controller.updateCell(dataRowIndex, cellIndex, value);
+                        },
+                      ),
+                    ),
                   );
                 } else if (cellIndex == 1) {
                   return DataCell(
-                    SizedBox(child: TextFormWidget(hintText: "0-100")),
+                    SizedBox(
+                      child: TextFormWidget(
+                        hintText: "0-100",
+                        initialValue: cellValue,
+                        onChanged: (value) {
+                          widget.controller.updateCell(dataRowIndex, cellIndex, value);
+                        },
+                      ),
+                    ),
                   );
                 } else {
                   return DataCell(
-                    SizedBox(child: TextFormWidget(hintText: "Оценка")),
+                    SizedBox(
+                      child: TextFormWidget(
+                        hintText: "Оценка",
+                        initialValue: cellValue,
+                        onChanged: (value) {
+                          widget.controller.updateCell(dataRowIndex, cellIndex, value);
+                        },
+                      ),
+                    ),
                   );
                 }
               },
