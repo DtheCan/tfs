@@ -699,7 +699,7 @@ class _HomePageState extends State<HomePage> {
                 Column(
                   children: [
                     Text(
-                      'Критерии',
+                      'Добавить Критерий',
                       style: TextStyle(color: Colors.white70, fontSize: 12),
                     ),
                     const SizedBox(height: 4),
@@ -713,7 +713,7 @@ class _HomePageState extends State<HomePage> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          '${_tableController.rowCount - 1}',
+                          '',
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -734,7 +734,7 @@ class _HomePageState extends State<HomePage> {
                 Column(
                   children: [
                     Text(
-                      'Кандидаты',
+                      'Добавить Кандидата',
                       style: TextStyle(color: Colors.white70, fontSize: 12),
                     ),
                     const SizedBox(height: 4),
@@ -748,7 +748,7 @@ class _HomePageState extends State<HomePage> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          '${_tableController.columnCount - 2}',
+                          '',
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
