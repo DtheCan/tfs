@@ -6,11 +6,15 @@ class TextFormWidget extends StatefulWidget {
     required this.hintText,
     this.onChanged,
     this.initialValue = '',
+    this.isHeader = false,
+    this.textAlign = TextAlign.left,
   });
 
   final String hintText;
   final Function(String)? onChanged;
   final String initialValue;
+  final bool isHeader;
+  final TextAlign textAlign;
 
   @override
   State<TextFormWidget> createState() => _TextFormWidgetState();
@@ -40,7 +44,12 @@ class _TextFormWidgetState extends State<TextFormWidget> {
       height: 35,
       child: TextField(
         controller: _controller,
-        style: TextStyle(fontSize: 12),
+        textAlign: widget.textAlign,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: widget.isHeader ? FontWeight.bold : FontWeight.normal,
+          color: widget.isHeader ? Colors.blueAccent : Colors.white,
+        ),
         decoration: InputDecoration(
           border: InputBorder.none,
           labelStyle: TextStyle(
