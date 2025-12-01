@@ -135,57 +135,65 @@ class _HomePageState extends State<HomePage> {
                     ),
                     const SizedBox(height: 20),
                   ],
-
-                  // Все результаты
                   Text(
                     'Все кандидаты:',
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
-                  const SizedBox(height: 12),
-
-                  ...results.entries
-                      .map(
-                        (entry) => Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 6),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  entry.key,
-                                  style: const TextStyle(color: Colors.white70),
-                                ),
-                              ),
-                              Container(
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: results.entries
+                            .map(
+                              (entry) => Padding(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
                                   vertical: 6,
                                 ),
-                                decoration: BoxDecoration(
-                                  color: Colors.blueAccent.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                    color: Colors.blueAccent.withOpacity(0.3),
-                                  ),
-                                ),
-                                child: Text(
-                                  '${entry.value.toStringAsFixed(2)}',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        entry.key,
+                                        style: const TextStyle(
+                                          color: Colors.white70,
+                                        ),
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.blueAccent.withOpacity(
+                                          0.2,
+                                        ),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: Colors.blueAccent.withOpacity(
+                                            0.3,
+                                          ),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        '${entry.value.toStringAsFixed(2)}',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
-                      )
-                      .toList(),
+                            )
+                            .toList(),
+                      ),
+                    ),
+                  ),
 
                   const SizedBox(height: 20),
                   _buildCalculationDetails(),
                   const SizedBox(height: 24),
-
-                  // Кнопки
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
@@ -652,26 +660,6 @@ class _HomePageState extends State<HomePage> {
                 ),
               ],
             ),
-            child: TextButton.icon(
-              onPressed: _calculateResults,
-              icon: const Icon(Icons.calculate, size: 18, color: Colors.white),
-              label: const Text(
-                "Рассчитать",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
           ),
           const SizedBox(width: 8),
         ],
@@ -775,6 +763,18 @@ class _HomePageState extends State<HomePage> {
             child: SingleChildScrollView(
               child: SimpleTable(controller: _tableController),
             ),
+          ),
+        ],
+      ),
+      floatingActionButton: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          // Первая кнопка - Анализ электропотребления
+          FloatingActionButton.extended(
+            onPressed: _calculateResults,
+            icon: const Icon(Icons.calculate),
+            label: const Text('Рассчитать'),
+            backgroundColor: Colors.blue,
           ),
         ],
       ),
