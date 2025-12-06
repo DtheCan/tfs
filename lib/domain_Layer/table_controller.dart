@@ -1,4 +1,3 @@
-// table_controller.dart
 import 'dart:ui';
 
 class TableController {
@@ -20,6 +19,12 @@ class TableController {
   void _initializeTableData() {
     tableData = List.generate(_rowCount, 
       (row) => List.generate(_columnCount, (col) => ''));
+  }
+  
+  // Добавьте этот публичный метод для инициализации таблицы
+  void initializeTable() {
+    _initializeTableData();
+    _notifyListeners();
   }
   
   void updateCell(int row, int column, String value) {

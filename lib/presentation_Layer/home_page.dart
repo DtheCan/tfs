@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:tfs/domain_Layer/criteria_template_service.dart';
+import 'package:tfs/presentation_Layer/create_template_dialog.dart';
 import 'package:tfs/presentation_Layer/data_table_widget.dart';
 import 'package:tfs/domain_Layer/table_controller.dart';
 import 'package:file_picker/file_picker.dart';
@@ -14,11 +16,138 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final TableController _tableController = TableController();
+  final TemplateService _templateService = TemplateService();
+  List<CriteriaTemplate> _templates = [];
+  String? _selectedTemplate;
+  bool _isLoadingTemplates = true;
 
   @override
   void initState() {
     super.initState();
     _tableController.onTableChanged = _refreshTable;
+    _loadTemplates();
+  }
+
+  Future<void> _loadTemplates() async {
+    setState(() {
+      _isLoadingTemplates = true;
+    });
+
+    try {
+      final templates = await _templateService.loadTemplates();
+      setState(() {
+        _templates = templates;
+      });
+    } catch (e) {
+      print('Ошибка загрузки шаблонов: $e');
+      _showSnackBar('Ошибка загрузки шаблонов', Colors.red);
+    } finally {
+      setState(() {
+        _isLoadingTemplates = false;
+      });
+    }
+  }
+
+  void _createNewTemplate() {
+    showDialog(
+      context: context,
+      builder: (context) => CreateTemplateDialog(
+        onTemplateCreated: (name, criteria) async {
+          final template = CriteriaTemplate(name: name, criteria: criteria);
+
+          try {
+            await _templateService.saveTemplate(template);
+            _showSnackBar('Шаблон "$name" сохранен', Colors.green);
+            await _loadTemplates();
+          } catch (e) {
+            _showSnackBar('Ошибка сохранения: $e', Colors.red);
+          }
+        },
+      ),
+    );
+  }
+
+  void _applyTemplate(String? templateName) {
+    if (templateName == null) return;
+
+    try {
+      final template = _templates.firstWhere((t) => t.name == templateName);
+
+      // Очищаем таблицу (оставляем заголовки)
+      _tableController.initializeTable();
+
+      // Добавляем необходимое количество строк для критериев
+      while (_tableController.rowCount - 1 < template.criteria.length) {
+        _tableController.addRow();
+      }
+
+      // Заполняем критерии (столбец 0)
+      for (int i = 0; i < template.criteria.length; i++) {
+        if (i + 1 < _tableController.tableData.length) {
+          _tableController.updateCell(i + 1, 0, template.criteria[i]);
+        }
+      }
+
+      _showSnackBar(
+        'Шаблон "$templateName" применен (${template.criteria.length} критериев)',
+        Colors.blue,
+      );
+    } catch (e) {
+      _showSnackBar('Ошибка применения шаблона: $e', Colors.red);
+    }
+  }
+
+  void _deleteTemplate(String? templateName) async {
+    if (templateName == null) return;
+
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.grey[900],
+        title: const Text(
+          'Удалить шаблон?',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: Text(
+          'Вы уверены, что хотите удалить шаблон "$templateName"?',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Отмена', style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Удалить', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete == true) {
+      try {
+        await _templateService.deleteTemplate(templateName);
+        _showSnackBar('Шаблон "$templateName" удален', Colors.orange);
+        await _loadTemplates();
+        setState(() {
+          _selectedTemplate = null;
+        });
+      } catch (e) {
+        _showSnackBar('Ошибка удаления: $e', Colors.red);
+      }
+    }
+  }
+
+  void _showSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   void _refreshTable() {
@@ -632,7 +761,6 @@ class _HomePageState extends State<HomePage> {
       backgroundColor: const Color(0xFF0A0E21),
       appBar: AppBar(
         title: Row(
-          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.assessment, color: Colors.blueAccent),
             const SizedBox(width: 12),
@@ -645,7 +773,9 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        actions: [
+      ),
+      body: Column(
+        children: [
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -662,10 +792,247 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           const SizedBox(width: 8),
-        ],
-      ),
-      body: Column(
-        children: [
+          // ПАНЕЛЬ ШАБЛОНОВ
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1D1F33),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.bookmarks, color: Colors.purpleAccent),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Шаблоны критериев',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      onPressed: _loadTemplates,
+                      icon: Icon(Icons.refresh, color: Colors.blueAccent),
+                      tooltip: 'Обновить список',
+                      iconSize: 20,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.grey[900],
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: _isLoadingTemplates
+                                  ? Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          const CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.blueAccent,
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Text(
+                                            'Загрузка шаблонов...',
+                                            style: TextStyle(
+                                              color: Colors.grey,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                  : DropdownButtonHideUnderline(
+                                      child: DropdownButton<String>(
+                                        value: _selectedTemplate,
+                                        hint: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                          ),
+                                          child: Text(
+                                            'Выберите шаблон',
+                                            style: TextStyle(
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                        ),
+                                        isExpanded: true,
+                                        dropdownColor: Colors.grey[900],
+                                        icon: Padding(
+                                          padding: const EdgeInsets.only(
+                                            right: 16,
+                                          ),
+                                          child: Icon(
+                                            Icons.arrow_drop_down,
+                                            color: Colors.blueAccent,
+                                          ),
+                                        ),
+                                        items: [
+                                          DropdownMenuItem<String>(
+                                            value: null,
+                                            child: Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 16,
+                                                  ),
+                                              child: Text(
+                                                'Выберите шаблон',
+                                                style: TextStyle(
+                                                  color: Colors.grey,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          ..._templates.map((template) {
+                                            return DropdownMenuItem<String>(
+                                              value: template.name,
+                                              child: Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 16,
+                                                    ),
+                                                child: Row(
+                                                  children: [
+                                                    Icon(
+                                                      Icons.description,
+                                                      color: Colors.blueAccent,
+                                                      size: 18,
+                                                    ),
+                                                    const SizedBox(width: 12),
+                                                    Expanded(
+                                                      child: Text(
+                                                        template.name,
+                                                        style: TextStyle(
+                                                          color: Colors.white,
+                                                          fontSize: 14,
+                                                        ),
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    Container(
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                            horizontal: 8,
+                                                            vertical: 2,
+                                                          ),
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.blueAccent
+                                                            .withOpacity(0.2),
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              4,
+                                                            ),
+                                                      ),
+                                                      child: Text(
+                                                        '${template.criteria.length}',
+                                                        style: TextStyle(
+                                                          color:
+                                                              Colors.blueAccent,
+                                                          fontSize: 12,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            );
+                                          }).toList(),
+                                        ],
+                                        onChanged: (value) {
+                                          setState(() {
+                                            _selectedTemplate = value;
+                                          });
+                                          _applyTemplate(value);
+                                        },
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                    ),
+                            ),
+                            if (_selectedTemplate != null &&
+                                _templates.isNotEmpty)
+                              IconButton(
+                                onPressed: () =>
+                                    _deleteTemplate(_selectedTemplate),
+                                icon: Icon(
+                                  Icons.delete_outline,
+                                  color: Colors.redAccent,
+                                ),
+                                tooltip: 'Удалить шаблон',
+                                iconSize: 20,
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.purpleAccent,
+                            Colors.deepPurpleAccent,
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.purpleAccent.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: ElevatedButton.icon(
+                        onPressed: _createNewTemplate,
+                        icon: const Icon(Icons.add, size: 18),
+                        label: const Text('Создать'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
           // Панель управления
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -769,12 +1136,37 @@ class _HomePageState extends State<HomePage> {
       floatingActionButton: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          // Первая кнопка - Анализ электропотребления
-          FloatingActionButton.extended(
-            onPressed: _calculateResults,
-            icon: const Icon(Icons.calculate),
-            label: const Text('Рассчитать'),
-            backgroundColor: Colors.blue,
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.blueAccent, Colors.deepPurpleAccent],
+              ),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.purpleAccent.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: ElevatedButton.icon(
+              onPressed: _calculateResults,
+              icon: const Icon(Icons.calculate, size: 38),
+              label: const Text('Рассчитать'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
+              ),
+            ),
           ),
         ],
       ),
